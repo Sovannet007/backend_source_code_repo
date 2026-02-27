@@ -34,5 +34,22 @@ namespace asp.net_api_teaching.Controllers
             var master = DataManager.ExtractDataTableToObjectList(ds.Tables[1]);
             return Ok(new {code,message, master });
         }
+
+        [HttpPost("save")]
+        public IActionResult MasterSave([FromBody] MasterSaveBinding req)
+        {
+            var parms = new SqlParameter[]
+            {
+                new SqlParameter("@MapKey", req.MapKey),
+                new SqlParameter("@Id", req.Id),
+                new SqlParameter("@Name", req.Name),
+                new SqlParameter("@Remark", req.Remark),
+            };
+            var dt = DataManager.ExecuteSPReturnDt(_db, "[dbo].[SP_API_MASTER_SAVE_V1]", parms);
+            var row = dt.Rows[0];
+            string code = row["code"].ToString()!;
+            string message = row["message"].ToString()!;
+            return Ok(new { code, message });
+        }
     }
 }
