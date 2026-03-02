@@ -1,5 +1,6 @@
 ﻿using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json.Linq;
 using System.Data;
 using System.Data.Common;
 
@@ -47,7 +48,10 @@ namespace asp.net_api_teaching.Data
                 var dict = new Dictionary<string, object>();
                 foreach (DataColumn cl in dt.Columns)
                 {
-                    dict[cl.ColumnName] = dr[cl.ColumnName];
+                    var value = dr[cl];
+
+                    // convert DBNull to null, keep original type otherwise
+                    dict[cl.ColumnName] = value == DBNull.Value ? null! : value;
                 }
                 // add dictionary to list
                 list.Add(dict);

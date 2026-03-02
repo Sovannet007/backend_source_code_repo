@@ -3,6 +3,7 @@ using asp.net_api_teaching.Request;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using System.Data;
+using System.Security.Claims;
 
 namespace asp.net_api_teaching.Controllers
 {
@@ -11,10 +12,16 @@ namespace asp.net_api_teaching.Controllers
     public class ProductController : ControllerBase
     {
         private readonly AppDbContext _db;
+        private readonly string _uploadPath;
         // constructor
         public ProductController(AppDbContext db)
         {
             _db = db;
+            _uploadPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads");
+            if (!Directory.Exists(_uploadPath))
+            {
+                Directory.CreateDirectory(_uploadPath);
+            }
         }
 
         // get all products
@@ -64,6 +71,33 @@ namespace asp.net_api_teaching.Controllers
             var ds = DataManager.ExtractDataSet(_db, "[dbo].[SP_API_PRODUCT_LIST_V1]", parms);
             var products = DataManager.ExtractDataTableToObjectList(ds.Tables[0]);
             return Ok(new { code = 0, products });
+        }
+
+        
+        // upload product photo
+        [HttpPost("upload-photo")]
+        public async Task<IActionResult> UploadPhotoAsync([FromForm] IFormFile file)
+        {
+            try
+            {
+                if (file == null || file.Length == 0) return Ok(new { code = 1, message = "No file selected" });
+                // create unique file name
+                var ext = Path.GetExtension(file.FileName);
+                var fileName = $"{Guid.NewGuid()}{ext}";
+                var physicalPath = Path.Combine(_uploadPath, fileName);
+                // save file
+                using (var stream = new FileStream(physicalPath, FileMode.Create))
+                {
+                    await file.CopyToAsync(stream);
+                }
+                // return relative path
+                var relativePath = $"/uploads/{fileName}";
+                return Ok(new{code = 0,message = "Upload successful",path = relativePath});
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new{code = 1,message = "Server error",error = ex.Message});
+            }
         }
     }
 }
